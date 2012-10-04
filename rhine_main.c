@@ -1955,24 +1955,23 @@ static inline u32 ether_crc(int length, unsigned char *data)
 }
 
 static void rhine_set_multi(struct net_device *dev) {
-
     PRHINE_INFO pInfo = netdev_priv(dev);
     u32                 mc_filter[2];
     //u8                  rx_mode=0;
-    int                 i;
     unsigned long       flags;
+/*
+    int                 i;
     struct dev_mc_list  *mclist;
-
+*/
     spin_lock_irqsave(&pInfo->lock,flags);
-
     //CSR_WRITE_1(&pInfo->hw, (pInfo->hw.sOpts.rx_thresh<<5), MAC_REG_RCR);
-
     if (dev->flags & IFF_PROMISC) {         // Set promiscuous.
         // Unconditionally log net taps.
         printk(KERN_NOTICE "%s: Promiscuous mode enabled.\n", dev->name);
         rhine_set_promiscuous(&pInfo->hw);
     }
-    else if ((dev->mc_count > pInfo->hw.multicast_limit) ||  (dev->flags & IFF_ALLMULTI)) {
+    //else if ((dev->mc_count > pInfo->hw.multicast_limit) ||  (dev->flags & IFF_ALLMULTI)) {
+    else if ((netdev_mc_count(dev) > pInfo->hw.multicast_limit) ||  (dev->flags & IFF_ALLMULTI)) {
         rhine_set_all_multicast(&pInfo->hw);
     }
     else{ 
@@ -1980,19 +1979,22 @@ static void rhine_set_multi(struct net_device *dev) {
             U32 mask=0;
             int offset=MCAM_SIZE-pInfo->hw.multicast_limit;
             rhine_get_cam_mask(&pInfo->hw,&mask,RHINE_MULTICAST_CAM);
+/*
             for (i = 0, mclist = dev->mc_list; mclist && i < dev->mc_count; i++, mclist = mclist->next) {
                 rhine_set_cam(&pInfo->hw,i+offset,mclist->dmi_addr,RHINE_MULTICAST_CAM);
                 mask|=1<<(offset+i);
             }
+*/
             rhine_set_cam_mask(&pInfo->hw,mask,RHINE_MULTICAST_CAM);
         }
         else {
             memset(mc_filter, 0, sizeof(mc_filter));
-            for (i = 0, mclist = dev->mc_list; mclist && i < dev->mc_count;
-                 i++, mclist = mclist->next) {
+/*
+            for (i = 0, mclist = dev->mc_list; mclist && i < dev->mc_count; i++, mclist = mclist->next) {
                 int bit_nr = ether_crc(ETH_ALEN, mclist->dmi_addr) >> 26;
                 mc_filter[bit_nr >> 5] |= (1 << (bit_nr & 31));
             }
+*/
             CSR_WRITE_4(&pInfo->hw, mc_filter[0], MAC_REG_MAR);
             CSR_WRITE_4(&pInfo->hw, mc_filter[1], MAC_REG_MAR+4);
         }
